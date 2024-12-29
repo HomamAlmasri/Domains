@@ -1,9 +1,9 @@
 @props(['result'])
 
-<x-panal class="flex gap-x-6">
+<x-panal class="flex gap-x-10 mb-7 ">
     <div class="flex-1 flex flex-col">
 
-            <h2 class="font-bold text-white-600 text-xl mt-2 group-hover:text-gray-800 transition-color duration-300">
+            <h2 class="font-bold text-white-600 text-xl mt-2 group-hover:text-blue-300 transition-color duration-300">
             {{ $result['name'] }}
 
         @if ($result['code'] != 200)
@@ -31,7 +31,7 @@
             @endif
         @else
 
-                <h3 class="font-bold text-green-400 text-xl mt-2 group-hover:text-green-800 transition-color duration-300">
+                <h3 class="font-bold text-green-500 text-xl mt-2 group-hover:text-green-800 transition-color duration-300">
                 {{ $result['domain'] }}
                 </h3>
               <p class="text-sm text-green-400-400 mt-auto">{{ $result['code'] }}</p>

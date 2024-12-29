@@ -12,7 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
@@ -25,11 +24,12 @@
             <div class="space-x-16 font-bold mt-auto mb-5">
                 @auth
                 <x-heading>
-                    <a href="/do" class="hover:bg-blue-900 rounded-xl px-2 py-1">Check Domains</a>
+                    <a href="/domains" class="hover:bg-blue-900 rounded-xl px-2 py-1">Check Domains</a>
                 </x-heading>
 
-                <x-heading> <a class="hover:bg-blue-900 rounded-xl px-2 py-1" href="/domains">Domains</a></x-heading>
+                <x-heading> <a class="hover:bg-blue-900 rounded-xl px-2 py-1" href="/">Domains</a></x-heading>
                 <x-heading> <a class="hover:bg-blue-900 rounded-xl px-2 py-1" href="{{Route('domain.create')}}">Add Domain</a></x-heading>
+                <x-heading> <a class="hover:bg-blue-900 rounded-xl px-2 py-1" href="{{Route('repo.input')}}">Check Repo</a></x-heading>
                 @endauth
             </div>
             @guest
