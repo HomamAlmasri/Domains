@@ -34,10 +34,21 @@
                             @if (!empty($details['files']))
                                 <div class="mt-4">
                                     <h3 class="text-green-400 font-semibold mb-2 text-sm">Changed Files:</h3>
-                                    <ul class="space-y-1 text-sm">
+                                    <ul class="space-y-2 text-sm">
                                         @foreach ($details['files'] as $file)
-                                            <li class="bg-gray-800 p-2 rounded flex justify-between items-center">
-                                                <span class="text-blue-100 break-all">{{ $file['file'] }}</span>
+                                            <li class="bg-gray-800 p-3 rounded flex justify-between items-center">
+                                                <div class="flex flex-col flex-1 mr-4">
+                                                    <span class="text-blue-100 break-all">{{ $file['file'] }}</span>
+                                                    <form action="{{ route('downloadChangedFile') }}" method="POST" class="mt-1">
+                                                        @csrf
+                                                        <input type="hidden" name="repo_path" value="{{ $repoPath }}">
+                                                        <input type="hidden" name="branch" value="{{ $branch }}">
+                                                        <input type="hidden" name="file" value="{{ $file['file'] }}">
+                                                        <button type="submit" class="bg-cyan-500 text-white px-2 py-1 text-xs rounded hover:bg-indigo-700">
+                                                            Download
+                                                        </button>
+                                                    </form>
+                                                </div>
                                                 @php
                                                     $statusColor = match($file['status']) {
                                                         'A' => 'bg-green-700',

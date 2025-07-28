@@ -117,4 +117,48 @@ Class GitServices{
         }
     }
 
+    public static function DownloadFileFromBranch(Request $request)
+    {
+        $repoPath = $request->input('repo_path');
+        $branch = $request->input('branch');
+        $file = $request->input('file');
+
+        try {
+            $commitProcess = new Process([
+                'C:\\Program Files\\Git\\bin\\git.exe',
+                '--git-dir=' . $repoPath,
+                'rev-parse',
+                $branch,
+            ]);
+            $commitProcess->run();
+
+            if (!$commitProcess->isSuccessful()) {
+                throw new ProcessFailedException($commitProcess);
+            }
+
+            $commitHash = trim($commitProcess->getOutput());
+
+            $showProcess = new Process([
+                'C:\\Program Files\\Git\\bin\\git.exe',
+                '--git-dir=' . $repoPath,
+                'show',
+                $commitHash . ':' . $file,
+            ]);
+            $showProcess->run();
+
+            if (!$showProcess->isSuccessful()) {
+                throw new ProcessFailedException($showProcess);
+            }
+
+            $fileContent = $showProcess->getOutput();
+            $fileName = basename($file);
+
+            return response($fileContent, 200)
+                ->header('Content-Type', 'application/octet-stream')
+                ->header('Content-Disposition', "attachment; filename=\"{$fileName}\"");
+        } catch (\Exception $e) {
+            return back()->with('error', "Download error: " . $e->getMessage());
+        }
+    }
+
 }

@@ -22,4 +22,10 @@ class RepoStatusController extends Controller
     {
         return  GitServices::CheckPaths($request);
     }
+    public function downloadChangedFile(Request $request): RedirectResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+    {
+        return GitServices::DownloadFileFromBranch($request);
+    }
+
+
 }
