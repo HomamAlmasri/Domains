@@ -3,16 +3,20 @@
 namespace App\Services;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
+use ZipArchive;
+use Illuminate\Support\Facades\File;
 
 Class GitServices{
 
-    public static function CheckPaths(Request $request){
-
+    public static function CheckPaths(Request $request)
+    {
         $repoPath = $request->input('repo_path');
 
         $ip = explode('\\', $repoPath);
+//        dd($ip);
         if ($ip[2] != '192.168.2.37') {
             return back()->with('error', 'The path must start with 192.168.2.11 or studio-pc as the third segment.');
         }
@@ -35,9 +39,7 @@ Class GitServices{
             }
 
             $branches = explode("\n", trim($branchProcess->getOutput()));
-            $branches = array_map(function ($branch) {
-                return trim(ltrim($branch, '* '));
-            }, $branches);
+            $branches = array_map(fn($branch) => trim(ltrim($branch, '* ')), $branches);
 
             if ($branches[0] == '') {
                 return back()->with('error', \Illuminate\Support\Str::afterLast($repoPath, '\\') . ' الرجاء الرفع , لم يتم الرفع من قبل الى ');
@@ -45,68 +47,49 @@ Class GitServices{
 
             $results = [];
 
-            // Step 2: Fetch latest commit and changed files per branch
+            // Step 2: Parse commit logs per branch
             foreach ($branches as $branch) {
                 $logProcess = new Process([
                     'C:\\Program Files\\Git\\bin\\git.exe',
                     '--git-dir=' . $repoPath,
                     '--no-pager',
                     'log',
-                    '--pretty=format:%an/(%ae)/%ad/%s',
+                    '--pretty=format:|||%an|%ae|%ad|%s',
                     '--date=format-local:%Y-%m-%d %H:%M:%S',
-                    '-n', '1',
+                    '-n', '20',
                     '--name-status',
                     $branch,
                 ]);
-
                 $logProcess->run();
 
                 if (!$logProcess->isSuccessful()) {
                     throw new ProcessFailedException($logProcess);
                 }
 
-                $logLines = explode("\n", trim($logProcess->getOutput()));
-                $commitMeta = array_shift($logLines);
-                $exploded = explode("/", $commitMeta);
-//                dd($logLines,$commitMeta,$exploded);
-//                dd($exploded);
+                $lines = explode("\n", trim($logProcess->getOutput()));
+                $results[$branch] = [];
+                $currentIndex = -1;
 
-                $name = $exploded[0] ?? 'Unknown';
-                $email = $exploded[1] ?? 'Unknown';
-                $date = $exploded[2] ?? 'Unknown';
-                $message = $exploded[3] ?? 'No message';
-                $timestamp = strtotime($date) ?: null;
-
-                $fileChanges = [];
-
-                foreach ($logLines as $line) {
-                    if (trim($line) === '') continue;
-                    $parts = preg_split('/\s+/', trim($line), 2);
-                    if (count($parts) === 2) {
-                        $fileChanges[] = [
-                            'status' => $parts[0],
-                            'file' => $parts[1],
+                foreach ($lines as $line) {
+                    if (Str::startsWith($line, '|||')) {
+                        $parts = explode('|', substr($line, 3));
+                        $results[$branch][] = [
+                            'name' => $parts[0] ?? 'Unknown',
+                            'email' => $parts[1] ?? 'Unknown',
+                            'date' => $parts[2] ?? 'Unknown',
+                            'message' => $parts[3] ?? 'No message',
+                            'timestamp' => strtotime($parts[2] ?? '') ?: time(),
+                            'files' => [],
                         ];
-//                        dd($fileChanges);
+                        $currentIndex++;
+                    } elseif ($currentIndex >= 0 && preg_match('/^(A|M|D)\s+(.+)/', $line, $matches)) {
+                        $results[$branch][$currentIndex]['files'][] = [
+                            'status' => $matches[1],
+                            'file' => $matches[2],
+                        ];
                     }
                 }
-
-                if ($timestamp !== null) {
-                    $results[$branch] = [
-                        'name' => $name,
-                        'email' => $email,
-                        'date' => $date,
-                        'message' => $message,
-                        'timestamp' => $timestamp,
-                        'files' => $fileChanges,
-                    ];
-                }
             }
-
-            // Step 3: Sort by latest commit
-            uasort($results, function ($a, $b) {
-                return $b['timestamp'] <=> $a['timestamp'];
-            });
 
             return view('repo_status', [
                 'repoPath' => $repoPath,
@@ -159,6 +142,51 @@ Class GitServices{
         } catch (\Exception $e) {
             return back()->with('error', "Download error: " . $e->getMessage());
         }
+    }
+    public static function downloadFilesAsZip(Request $request)
+    {
+        $repoPath = $request->input('repo_path');
+        $branch = $request->input('branch');
+        $files = $request->input('files');
+
+        $folderName = 'selected_files_' . time();
+        $folderPath = storage_path("app/temp/{$folderName}");
+        File::ensureDirectoryExists($folderPath);
+
+        foreach ($files as $filePath) {
+            $process = new Process([
+                'C:\\Program Files\\Git\\bin\\git.exe',
+                '--git-dir=' . $repoPath,
+                'show',
+                "{$branch}:{$filePath}",
+            ]);
+            $process->run();
+
+            if ($process->isSuccessful()) {
+                $fileContent = $process->getOutput();
+                $fullFilePath = $folderPath . '/' . $filePath;
+
+                File::ensureDirectoryExists(dirname($fullFilePath));
+                File::put($fullFilePath, $fileContent);
+            }
+        }
+
+        $zipName = "{$folderName}.zip";
+        $zipPath = storage_path("app/public/{$zipName}");
+        $zip = new \ZipArchive;
+
+        if ($zip->open($zipPath, \ZipArchive::CREATE)) {
+            foreach (File::allFiles($folderPath) as $file) {
+                $relativePath = str_replace($folderPath . '/', '', $file->getRealPath());
+                $zip->addFile($file->getRealPath(), basename($file->getRealPath()));
+
+            }
+            $zip->close();
+        }
+
+        File::deleteDirectory($folderPath); // clean temp
+
+        return response()->download($zipPath)->deleteFileAfterSend(true);
     }
 
 }

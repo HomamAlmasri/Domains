@@ -27,5 +27,8 @@ class RepoStatusController extends Controller
         return GitServices::DownloadFileFromBranch($request);
     }
 
-
+    public function downloadFilesAsZip(Request $request): RedirectResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse|\Illuminate\Http\Response
+    {
+        return GitServices::downloadFilesAsZip($request);
+    }
 }
