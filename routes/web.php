@@ -28,6 +28,9 @@ Route::delete('/domains/{domain}','destroy')->name('domain.destroy')->middleware
 
 
 //_______________________________DOMAINS_________________________________________//
+
+
+
 Route::get('/repo/input', [RepoStatusController::class, 'showInputForm'])->name('repo.input')->middleware('auth');
 Route::post('/repo-status', [RepoStatusController::class, 'checkRepoStatus'])->name('repo.status')->middleware('auth');
 Route::post('/download-file', [RepoStatusController::class, 'downloadChangedFile'])->name('downloadChangedFile')->middleware('auth');
